@@ -1,0 +1,61 @@
+{
+  "name": "danbi-bot",
+  "version": "1.0.0",
+  "description": "DanbiBot - Spoon Radio Bot Application",
+  "main": "main.js",
+  "author": "DanbiBot Team",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win --x64"
+  },
+  "build": {
+      "appId": "com.danbibot.app",
+      "productName": "DanbiBot",
+      "publish": [
+        {
+          "provider": "github",
+          "owner": "HwangYoungChulaa2",
+          "repo": "Danbi-Bot"
+        }
+      ],
+      "directories": {
+        "output": "dist"
+      },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DanbiBot"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!dist",
+      "!release"
+    ],
+    "compression": "maximum",
+    "asar": true
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  }
+}

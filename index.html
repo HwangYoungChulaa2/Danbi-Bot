@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danbi Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 15px 20px;
+            border-bottom: 2px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: #00d4ff;
+        }
+
+        .bot-status {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+        }
+
+        .status-indicator.active {
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            display: flex;
+            margin-top: 60px;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 100%;
+            height: 100%;
+            background: #16213e;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #16213e;
+        }
+
+        .stats-card {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .module-card {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .module-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #555;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-switch.active::after {
+            left: 28px;
+        }
+
+        .module-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-settings {
+            background: #0f3460;
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-settings:hover {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #16213e;
+            width: 90%;
+            max-width: 450px;
+            border-radius: 12px;
+            border: 1px solid #0f3460;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #0f3460;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .form-control {
+            width: 100%;
+            background: #0f3460;
+            border: 1px solid #1a1a2e;
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+
+        .btn-secondary {
+            background: #555;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff4444;
+            color: white;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+
+        .tabbtn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #0f3460;
+            border: 1px solid #1a1a2e;
+            color: #aaa;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .tabbtn:hover {
+            background: #16213e;
+            color: #00d4ff;
+        }
+
+        .tabbtn.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        .list-container {
+            margin-top: 10px;
+        }
+
+        .list-item {
+            background: #0f3460;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item-info {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .list-item-title {
+            font-weight: bold;
+            color: #00ff88;
+            font-size: 14px;
+        }
+
+        .list-item-desc {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        .module-description {
+            font-size: 13px;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            margin: 30px 0 20px;
+            color: #00d4ff;
+            font-size: 18px;
+            border-bottom: 2px solid #0f3460;
+            padding-bottom: 10px;
+        }
+
+        .log-container {
+            background: #0a0e27;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid #0f3460;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: #0a0e27;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #16213e;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #16213e;
+            animation: fadeIn 0.3s;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .log-time {
+            color: #888;
+            margin-right: 10px;
+        }
+
+        .log-level {
+            font-weight: bold;
+            margin-right: 10px;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .level-info { color: #00d4ff; }
+        .level-warn { color: #f39c12; }
+        .level-error { color: #ff4444; }
+
+        .tabbtn {
+            background: #0f3460;
+            border: 1px solid #1a1a2e;
+            color: #aaa;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .tabbtn.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border-color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Danbi Bot</h1>
+        <div class="bot-status">
+            <div id="status-indicator" class="status-indicator"></div>
+            <span id="status-text" style="font-size: 14px; color: #aaa;">연결 대기 중...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="stats-card">
+                <div class="stat-item">
+                    <div id="active-modules" class="stat-value">0</div>
+                    <div class="stat-label">활성 모듈</div>
+                </div>
+                <div class="stat-item">
+                    <div id="chat-count" class="stat-value">0</div>
+                    <div class="stat-label">누적 채팅</div>
+                </div>
+            </div>
+
+
+
+            <div class="section-title">모듈 관리</div>
+
+            <!-- 실드 시스템 -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title">🛡️ 실드 시스템</div>
+                    <div class="module-controls">
+                        <button class="btn-settings" onclick="openModal('shieldBot')">설정</button>
+                        <div id="toggle-shieldBot" class="toggle-switch" onclick="toggleModule('shieldBot')"></div>
+                    </div>
+                </div>
+                <div class="module-description">
+                    시청자들이 실드를 적립하고 사용할 수 있습니다. (!실드, !실드사용)
+                </div>
+            </div>
+
+            <!-- 펀딩 시스템 -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title">💰 펀딩 시스템</div>
+                    <div class="module-controls">
+                        <button class="btn-settings" onclick="openModal('fundingBot')">설정</button>
+                        <div id="toggle-fundingBot" class="toggle-switch" onclick="toggleModule('fundingBot')"></div>
+                    </div>
+                </div>
+                <div class="module-description">
+                    목표 금액을 설정하고 시청자들과 함께 펀딩을 진행합니다. (!펀딩, !펀딩추가)
+                </div>
+            </div>
+
+            <!-- 반복 멘트 -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title">🔁 반복 멘트</div>
+                    <div class="module-controls">
+                        <button class="btn-settings" onclick="openModal('repeatBot')">설정</button>
+                        <div id="toggle-repeatBot" class="toggle-switch" onclick="toggleModule('repeatBot')"></div>
+                    </div>
+                </div>
+                <div class="module-description">
+                    일정한 간격으로 설정된 메시지를 자동으로 출력합니다.
+                </div>
+            </div>
+
+            <!-- 명령어 관리 -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title">⌨️ 명령어 관리</div>
+                    <div class="module-controls">
+                        <button class="btn-settings" onclick="openModal('customCommandBot')">설정</button>
+                        <div id="toggle-customCommandBot" class="toggle-switch" onclick="toggleModule('customCommandBot')"></div>
+                    </div>
+                </div>
+                <div class="module-description">
+                    사용자가 직접 명령어를 정의하고 응답을 설정합니다. (!명령어추가 !단비 안녕하세요)
+                </div>
+            </div>
+
+            <!-- 낚시 게임 -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title">🎣 낚시 게임</div>
+                    <div class="module-controls">
+                        <button class="btn-settings" onclick="openModal('fishingBot')">설정</button>
+                        <div id="toggle-fishingBot" class="toggle-switch" onclick="toggleModule('fishingBot')"></div>
+                    </div>
+                </div>
+                <div class="module-description">
+                    시청자들이 낚시, 슬롯, 주사위 등 다양한 게임을 즐길 수 있습니다. (!낚시, !지갑, !슬롯, !주사위, !홀, !짝, !상점)
+                </div>
+            </div>
+
+            <!-- 룰렛 시스템 -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title">🎰 룰렛 시스템</div>
+                    <div class="module-controls">
+                        <button class="btn-settings" style="background: #f39c12; color: white; border-color: #f39c12;" onclick="openRouletteGuide()">📖 사용설명서</button>
+                        <button class="btn-settings" onclick="openModal('rouletteBot')">설정</button>
+                        <div id="toggle-rouletteBot" class="toggle-switch" onclick="toggleModule('rouletteBot')"></div>
+                    </div>
+                </div>
+                <div class="module-description">
+                    채팅 메시지에 반응하여 자동으로 룰렛을 실행하고 결과를 저장합니다. 유저별 히스토리 관리 
+                </div>
+            </div>
+
+            <div class="section-title">로그</div>
+            <div id="log-container" class="log-container">
+                <div class="log-entry">
+                    <span class="log-time">00:00:00</span>
+                    <span class="log-level level-info">INFO</span>
+                    <span class="log-message">앱 초기화 완료</span>
+                </div>
+            </div>
+            <div style="margin-top: 10px; text-align: right;">
+                <button class="btn-settings" onclick="window.electronAPI.reinjectScripts()">엔진 재시작</button>
+            </div>
+
+            <div class="section-title">설정 관리</div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" style="flex: 1; min-width: 150px;" onclick="exportBackup()">💾 설정 백업 내보내기</button>
+                <button class="btn btn-primary" style="flex: 1; min-width: 150px;" onclick="importBackup()">📂 백업 가져오기</button>
+            </div>
+            <input type="file" id="backup-file-input" accept=".json" style="display: none;" onchange="handleBackupImport(event)">
+        </div>
+    </div>
+
+    <!-- 룰렛 사용설명서 모달 -->
+    <div id="guide-modal-overlay" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title">🎰 룰렛 시스템 상세 사용설명서</div>
+                <button class="modal-close" onclick="closeRouletteGuide()">&times;</button>
+            </div>
+            <div class="modal-body" style="line-height: 1.6; color: #ddd;">
+                <h3 style="color: #00ff88; margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px;">1. 룰렛 트리거 동작 조건</h3>
+                <p>룰렛은 설정된 <strong>'금액에'</strong>에 반응하여 자동으로 실행됩니다.</p>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>스티커 선물:</strong> 트리거 메시지가  "10스푼"인 경우, 시청자가 10스푼을 선물하면 즉시 룰렛이 돌아갑니다.</li>
+                    <li><strong>DJ 제외:</strong> 무한 루프 방지를 위해 DJ 본인의 채팅에는 룰렛이 반응하지 않습니다. (단, 스티커 선물은 본인도 가능)</li>
+                </ul>
+
+                <h3 style="color: #00ff88; margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px;">2. 유저별 명령어 자동 생성</h3>
+                <p>룰렛 결과가 나오면 해당 유저의 닉네임으로 된 <strong>명령어가 자동으로 생성</strong>됩니다.</p>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>자동 생성:</strong> '단비' 유저가 룰렛을 돌리면 <code>!단비</code> 명령어가 명령어 관리 모듈에 추가됩니다.</li>
+                    <li><strong>내용 업데이트:</strong> 이미 명령어가 있다면 기존 내용에 새로운 결과를 덧붙입니다.</li>
+                    <li><strong>중복 합산:</strong> 동일한 결과가 여러 번 나오면 <code>결과 X횟수</code>(예: 주사위 X4)로 표시됩니다.</li>
+                    <li><strong>공백 처리:</strong> 닉네임에 공백이 있어도(예: '단 비') 명령어는 공백 없이(<code>!단비</code>) 생성됩니다.</li>
+                </ul>
+
+                <h3 style="color: #00ff88; margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px;">3. 명령어 사용 방법</h3>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>!닉네임:</strong> 유저 본인의 룰렛 결과 목록을 채팅창에 출력합니다.</li>
+                    <li><strong>부분 일치:</strong> 닉네임이 길어도 <strong>앞 두 글자</strong>만 입력하면 실행됩니다. (예: <code>!단비dfdf</code> -> <code>!단비</code> 또는 <code>!단 비</code>로 실행 가능)</li>
+                                    </ul>
+
+                <h3 style="color: #00ff88; margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px;">4. 설정 팁</h3>
+                <p>룰렛 설정 창에서 아이템별 <strong>확률</strong>을 조정할 수 있습니다. 확률의 총합은 자동으로 계산되어 공정하게 추첨됩니다.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeRouletteGuide()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div id="modal-title" class="modal-title">모듈 설정</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body">
+                <!-- 모듈별 설정 내용이 여기에 동적으로 삽입됨 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+                <button id="btn-save" class="btn btn-primary">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentModule = '';
+        let moduleSettings = {
+            modules: {}
+        };
+        let editingIndex = -1;
+        let editingKey = '';
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', async () => {
+            const settings = await window.electronAPI.getBotSettings();
+            if (settings) {
+                moduleSettings = settings;
+                updateToggles();
+            }
+            
+
+            
+            addLog('info', '앱 초기화 완료');
+        });
+
+
+
+        // 토글 업데이트
+        function updateToggles() {
+            let activeCount = 0;
+            const modules = ['shieldBot', 'fundingBot', 'repeatBot', 'customCommandBot', 'fishingBot', 'rouletteBot'];
+            modules.forEach(m => {
+                const toggle = document.getElementById(`toggle-${m}`);
+                if (toggle) {
+                    const isActive = moduleSettings.modules[m] === true;
+                    if (isActive) {
+                        toggle.classList.add('active');
+                        activeCount++;
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                }
+            });
+            document.getElementById('active-modules').innerText = activeCount;
+        }
+
+        // 모듈 토글
+        async function toggleModule(moduleName) {
+            const toggle = document.getElementById(`toggle-${moduleName}`);
+            const newState = !toggle.classList.contains('active');
+            
+            const result = await window.electronAPI.toggleModule(moduleName, newState);
+            if (result.success) {
+                moduleSettings.modules[moduleName] = newState;
+                updateToggles();
+            }
+        }
+
+        // 모달 열기
+        async function openModal(moduleName) {
+            currentModule = moduleName;
+            editingIndex = -1;
+            editingKey = '';
+            const overlay = document.getElementById('modal-overlay');
+            const title = document.getElementById('modal-title');
+            const body = document.getElementById('modal-body');
+            const saveBtn = document.getElementById('btn-save');
+
+            overlay.style.display = 'flex';
+            body.innerHTML = '로딩 중...';
+            
+            // 포커스 설정 및 클릭 이벤트 활성화
+            overlay.focus();
+            overlay.style.pointerEvents = 'auto';
+
+            // 데이터 가져오기
+            const data = await window.electronAPI.getModuleData(moduleName);
+            
+            // 모달 콘텐츠 렌더링 후 포커스 설정
+            const ensureFocus = () => {
+                setTimeout(() => {
+                    const inputs = body.querySelectorAll('input, button, select, textarea');
+                    if (inputs.length > 0) {
+                        inputs[0].focus();
+                    }
+                }, 50);
+            };
+
+            if (moduleName === 'shieldBot') {
+                title.innerText = '🛡️ 실드 시스템 설정';
+                const uids = await window.electronAPI.getShieldUIDs();
+                const uidsArr = uids || [];
+                let uidsHtml = uidsArr.map((u, i) => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${u}</div>
+                        </div>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteShieldUID(${i})">삭제</button>
+                    </div>
+                `).join('');
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label>현재 실드 수량</label>
+                        <input type="number" id="shield-amount" class="form-control" value="${data || 0}" autofocus>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #0f3460;">
+                        <label style="font-size: 14px; color: #ccc; margin-bottom: 8px; display: block;">🔑 고유닉(UID) 관리 (적립/차감 권한 유저)</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <input type="text" id="shield-uid-input" class="form-control" placeholder="고유 ID 입력 (예: user_123)" style="flex: 1;">
+                            <button class="btn btn-primary" style="white-space: nowrap;" onclick="addShieldUID()">추가</button>
+                        </div>
+                        <div id="shield-uids-list" class="list-container">${uidsHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 고유닉이 없습니다.</div>'}</div>
+                    </div>
+                `;
+                window._shieldUIDs = [...uidsArr];
+                ensureFocus();
+                saveBtn.onclick = async () => {
+                    const amount = parseInt(document.getElementById('shield-amount').value);
+                    saveBtn.innerText = '저장 중...';
+                    await window.electronAPI.saveModuleData('shieldBot', amount);
+                    await window.electronAPI.saveShieldUIDs(window._shieldUIDs);
+                    saveBtn.innerText = '저장';
+                    closeModal();
+                };
+            } 
+            else if (moduleName === 'fundingBot') {
+                title.innerText = '💰 펀딩 시스템 관리';
+                const fundings = data || [];
+                let fundingsHtml = fundings.map((f, i) => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${f.name}</div>
+                            <div class="list-item-desc">${f.current}/${f.goal} (${Math.floor(f.current/f.goal*100)}%)</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="startEditFunding(${i})">수정</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteFunding(${i})">삭제</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                body.innerHTML = `
+                    <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;">
+                        <div class="form-group">
+                            <label id="fund-form-title">새 펀딩 추가</label>
+                            <input type="text" id="fund-name" class="form-control" placeholder="펀딩 이름 (예: 리방하기)">
+                        </div>
+                        <div class="form-group">
+                            <label>목표 금액</label>
+                            <input type="number" id="fund-goal" class="form-control" placeholder="5000">
+                        </div>
+                        <div class="form-group">
+                            <label>설명</label>
+                            <textarea id="fund-desc" class="form-control" rows="2" placeholder="펀딩 설명을 입력하세요"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-fund-action" class="btn btn-primary" style="flex: 1" onclick="addFunding()">펀딩 추가</button>
+                            <button id="btn-fund-cancel" class="btn btn-secondary" style="display: none;" onclick="cancelEdit()">취소</button>
+                        </div>
+                    </div>
+                    <label>현재 진행중인 펀딩 (${fundings.length}/10)</label>
+                    <div class="list-container">${fundingsHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 펀딩이 없습니다.</div>'}</div>
+                `;
+                saveBtn.style.display = 'none';
+            }
+            else if (moduleName === 'repeatBot') {
+                title.innerText = '🔁 반복 멘트 설정';
+                saveBtn.style.display = 'block';
+                const rData = data || { messages: [], outputMode: 'sequential', intervalSeconds: 60 };
+                
+                let msgsHtml = (rData.messages || []).map((m, i) => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-desc" style="white-space: pre-wrap;">${m}</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="startEditRepeat(${i})">수정</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteRepeatMsg(${i})">삭제</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label>출력 방식</label>
+                        <select id="repeat-mode" class="form-control">
+                            <option value="sequential" ${rData.outputMode === 'sequential' ? 'selected' : ''}>순서대로 출력</option>
+                            <option value="random" ${rData.outputMode === 'random' ? 'selected' : ''}>랜덤 출력</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>반복 간격 (초, 최소 10초)</label>
+                        <input type="number" id="repeat-interval" autofocus class="form-control" value="${rData.intervalSeconds}" min="10">
+                    </div>
+                    <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;">
+                        <div class="form-group">
+                            <label id="repeat-form-title">새 메시지 추가 (엔터로 줄바꿈 가능)</label>
+                            <textarea id="repeat-new-msg" class="form-control" rows="3" placeholder="반복할 메시지를 입력하세요"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-repeat-action" class="btn btn-primary" style="flex: 1" onclick="addRepeatMsg()">메시지 추가</button>
+                            <button id="btn-repeat-cancel" class="btn btn-secondary" style="display: none;" onclick="cancelEdit()">취소</button>
+                        </div>
+                    </div>
+                    <label>등록된 메시지 목록</label>
+                    <div class="list-container">${msgsHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 메시지가 없습니다.</div>'}</div>
+                `;
+                
+                saveBtn.onclick = async () => {
+                    const mode = document.getElementById('repeat-mode').value;
+                    const interval = parseInt(document.getElementById('repeat-interval').value);
+                    rData.outputMode = mode;
+                    rData.intervalSeconds = interval;
+                    saveBtn.innerText = '저장 중...';
+                    await window.electronAPI.saveModuleData('repeatBot', rData);
+                    saveBtn.innerText = '저장';
+                    closeModal();
+                };
+            }
+            else if (moduleName === 'customCommandBot') {
+                title.innerText = '⌨️ 명령어 관리';
+                saveBtn.style.display = 'none';
+                const commands = data || {};
+                const cmdKeys = Object.keys(commands);
+                
+                let cmdsHtml = cmdKeys.map(k => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${k}</div>
+                            <div class="list-item-desc" style="white-space: pre-wrap;">${commands[k]}</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="startEditCommand('${k}')">수정</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteCommand('${k}')">삭제</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                body.innerHTML = `
+                    <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;">
+                        <div class="form-group">
+                            <label id="cmd-form-title">새 명령어 추가</label>
+                            <input type="text" id="cmd-key" class="form-control" placeholder="!명령어 (예: !단비)">
+                        </div>
+                        <div class="form-group">
+                            <label>응답 메시지 (엔터로 줄바꿈 가능)</label>
+                            <textarea id="cmd-res" class="form-control" rows="3" placeholder="응답 내용을 입력하세요"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-cmd-action" class="btn btn-primary" style="flex: 1" onclick="addCommand()">명령어 추가</button>
+                            <button id="btn-cmd-cancel" class="btn btn-secondary" style="display: none;" onclick="cancelEdit()">취소</button>
+                        </div>
+                    </div>
+                    <label>등록된 명령어 목록</label>
+                    <div class="list-container">${cmdsHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 명령어가 없습니다.</div>'}</div>
+                `;
+            }
+            else if (moduleName === 'rouletteBot') {
+                title.innerText = '🎰 룰렛 시스템 설정';
+                saveBtn.style.display = 'block';
+                const rouletteData = data || { roulettes: [], users: {} };
+                window.currentRouletteData = rouletteData;
+                
+                body.innerHTML = `
+                    <div style="display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid #0f3460; padding-bottom: 10px;">
+                        <button class="tabbtn active" onclick="switchRouletteTab('roulettes', event)">룰렛 관리</button>
+                        <button class="tabbtn" onclick="switchRouletteTab('users', event)">유저 관리</button>
+                    </div>
+                    <div id="roulette-tab-content"></div>
+                `;
+                window.currentRouletteData = rouletteData;
+                switchRouletteTab('roulettes', { target: body.querySelector('.tabbtn.active') });
+                ensureFocus();
+                
+                saveBtn.onclick = async () => {
+                    saveBtn.innerText = '저장 중...';
+                    await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+                    saveBtn.innerText = '저장';
+                    closeModal();
+                };
+            }
+            else if (moduleName === 'fishingBot') {
+                title.innerText = '🎣 낚시 게임 설정';
+                saveBtn.style.display = 'block';
+                const fishingData = data || { fish: [], shop: [], event: { enabled: false, fish: [] }, users: {}, economy: { startingGold: 100 } };
+                
+                body.innerHTML = `
+                    <div style="display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid #0f3460; padding-bottom: 10px;">
+                        <button class="tabbtn active" onclick="switchFishingTab('fish')">물고기</button>
+                        <button class="tabbtn" onclick="switchFishingTab('shop')">상점</button>
+                        <button class="tabbtn" onclick="switchFishingTab('event')">이벤트</button>
+                        <button class="tabbtn" onclick="switchFishingTab('users')">사용자</button>
+                    </div>
+                    <div id="fishing-tab-content"></div>
+                `;
+                
+                window.currentFishingData = fishingData;
+                switchFishingTab('fish');
+                ensureFocus();
+                
+                saveBtn.onclick = async () => {
+                    saveBtn.innerText = '저장 중...';
+                    await window.electronAPI.saveModuleData('fishingBot', window.currentFishingData);
+                    saveBtn.innerText = '저장';
+                    closeModal();
+                };
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('btn-save').style.display = 'block';
+            editingIndex = -1;
+            editingKey = '';
+        }
+
+        // 수정 취소
+        function cancelEdit() {
+            editingIndex = -1;
+            editingKey = '';
+            openModal(currentModule);
+        }
+
+        // 펀딩 수정 시작
+        async function startEditFunding(index) {
+            const data = await window.electronAPI.getModuleData('fundingBot');
+            const item = data[index];
+            editingIndex = index;
+            
+            document.getElementById('fund-form-title').innerText = '펀딩 수정';
+            document.getElementById('fund-name').value = item.name;
+            document.getElementById('fund-goal').value = item.goal;
+            document.getElementById('fund-desc').value = item.description || '';
+            
+            const actionBtn = document.getElementById('btn-fund-action');
+            actionBtn.innerText = '수정 완료';
+            actionBtn.onclick = () => updateFunding();
+            
+            document.getElementById('btn-fund-cancel').style.display = 'block';
+        }
+
+        async function addFunding() {
+            const name = document.getElementById('fund-name').value;
+            const goal = parseInt(document.getElementById('fund-goal').value);
+            const desc = document.getElementById('fund-desc').value;
+            if (!name || !goal) return;
+            const data = await window.electronAPI.getModuleData('fundingBot') || [];
+            data.push({ name, goal, current: 0, description: desc });
+            await window.electronAPI.saveModuleData('fundingBot', data);
+            openModal('fundingBot');
+        }
+
+        async function updateFunding() {
+            const name = document.getElementById('fund-name').value;
+            const goal = parseInt(document.getElementById('fund-goal').value);
+            const desc = document.getElementById('fund-desc').value;
+            if (!name || !goal || editingIndex === -1) return;
+            
+            const data = await window.electronAPI.getModuleData('fundingBot');
+            data[editingIndex].name = name;
+            data[editingIndex].goal = goal;
+            data[editingIndex].description = desc;
+            
+            await window.electronAPI.saveModuleData('fundingBot', data);
+            editingIndex = -1;
+            openModal('fundingBot');
+        }
+
+        async function deleteFunding(index) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const data = await window.electronAPI.getModuleData('fundingBot');
+            data.splice(index, 1);
+            await window.electronAPI.saveModuleData('fundingBot', data);
+            openModal('fundingBot');
+        }
+
+        // 반복 멘트 수정 시작
+        async function startEditRepeat(index) {
+            const data = await window.electronAPI.getModuleData('repeatBot');
+            const msg = data.messages[index];
+            editingIndex = index;
+            
+            document.getElementById('repeat-form-title').innerText = '메시지 수정';
+            document.getElementById('repeat-new-msg').value = msg;
+            
+            const actionBtn = document.getElementById('btn-repeat-action');
+            actionBtn.innerText = '수정 완료';
+            actionBtn.onclick = () => updateRepeatMsg();
+            
+            document.getElementById('btn-repeat-cancel').style.display = 'block';
+        }
+
+        async function addRepeatMsg() {
+            const msg = document.getElementById('repeat-new-msg').value;
+            if (!msg) return;
+            const data = await window.electronAPI.getModuleData('repeatBot') || { messages: [], outputMode: 'sequential', intervalSeconds: 60 };
+            data.messages.push(msg);
+            await window.electronAPI.saveModuleData('repeatBot', data);
+            openModal('repeatBot');
+        }
+
+        async function updateRepeatMsg() {
+            const msg = document.getElementById('repeat-new-msg').value;
+            if (!msg || editingIndex === -1) return;
+            
+            const data = await window.electronAPI.getModuleData('repeatBot');
+            data.messages[editingIndex] = msg;
+            
+            await window.electronAPI.saveModuleData('repeatBot', data);
+            editingIndex = -1;
+            openModal('repeatBot');
+        }
+
+        async function deleteRepeatMsg(index) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const data = await window.electronAPI.getModuleData('repeatBot');
+            data.messages.splice(index, 1);
+            await window.electronAPI.saveModuleData('repeatBot', data);
+            openModal('repeatBot');
+        }
+
+        // 명령어 수정 시작
+        async function startEditCommand(key) {
+            const data = await window.electronAPI.getModuleData('customCommandBot');
+            const res = data[key];
+            editingKey = key;
+            
+            document.getElementById('cmd-form-title').innerText = '명령어 수정';
+            document.getElementById('cmd-key').value = key;
+            document.getElementById('cmd-res').value = res;
+            
+            const actionBtn = document.getElementById('btn-cmd-action');
+            actionBtn.innerText = '수정 완료';
+            actionBtn.onclick = () => updateCommand();
+            
+            document.getElementById('btn-cmd-cancel').style.display = 'block';
+        }
+
+        async function addCommand() {
+            const key = document.getElementById('cmd-key').value;
+            const res = document.getElementById('cmd-res').value;
+            if (!key || !res) return;
+            const data = await window.electronAPI.getModuleData('customCommandBot') || {};
+            data[key] = res;
+            await window.electronAPI.saveModuleData('customCommandBot', data);
+            openModal('customCommandBot');
+        }
+
+        async function updateCommand() {
+            const key = document.getElementById('cmd-key').value;
+            const res = document.getElementById('cmd-res').value;
+            if (!key || !res || !editingKey) return;
+            
+            const data = await window.electronAPI.getModuleData('customCommandBot');
+            // 키가 변경된 경우 기존 키 삭제
+            if (key !== editingKey) {
+                delete data[editingKey];
+            }
+            data[key] = res;
+            
+            await window.electronAPI.saveModuleData('customCommandBot', data);
+            editingKey = '';
+            openModal('customCommandBot');
+        }
+
+        async function deleteCommand(key) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const data = await window.electronAPI.getModuleData('customCommandBot');
+            delete data[key];
+            await window.electronAPI.saveModuleData('customCommandBot', data);
+            openModal('customCommandBot');
+        }
+
+        function addShieldUID() {
+            const input = document.getElementById('shield-uid-input');
+            const uid = input.value.trim();
+            if (!uid) return;
+            if (window._shieldUIDs.includes(uid)) {
+                alert('이미 등록된 고유 ID입니다.');
+                return;
+            }
+            window._shieldUIDs.push(uid);
+            input.value = '';
+            renderShieldUIDs();
+        }
+
+        function deleteShieldUID(index) {
+            window._shieldUIDs.splice(index, 1);
+            renderShieldUIDs();
+        }
+
+        function renderShieldUIDs() {
+            const container = document.getElementById('shield-uids-list');
+            if (!container) return;
+            if (window._shieldUIDs.length === 0) {
+                container.innerHTML = '<div style="color:#666; text-align:center; padding:10px;">등록된 고유닉이 없습니다.</div>';
+                return;
+            }
+            container.innerHTML = window._shieldUIDs.map((u, i) => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${u}</div>
+                    </div>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteShieldUID(${i})">삭제</button>
+                </div>
+            `).join('');
+        }
+
+        function switchFishingTab(tab) {
+            const content = document.getElementById('fishing-tab-content');
+            if (!content) return;
+            const buttons = document.querySelectorAll('.tabbtn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            
+            const data = window.currentFishingData;
+            
+            if (tab === 'fish') {
+                const fish = data.fish || [];
+                let fishHtml = fish.map((f, i) => `<div class="list-item"><div class="list-item-info"><div class="list-item-title">${f.name}</div><div class="list-item-desc">확률: ${f.weight} | 보상: ${f.min}~${f.max}원</div></div><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteFish(${i})">삭제</button></div>`).join('');
+                content.innerHTML = `<div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;"><div class="form-group"><label>물고기 이름</label><input type="text" id="fish-name" class="form-control" placeholder="예: 붕어"></div><div class="form-group"><label>확률 (weight)</label><input type="number" id="fish-weight" class="form-control" placeholder="25"></div><div class="form-group"><label>최소 보상 (원)</label><input type="number" id="fish-min" class="form-control" placeholder="10"></div><div class="form-group"><label>최대 보상 (원)</label><input type="number" id="fish-max" class="form-control" placeholder="20"></div><button class="btn btn-primary" style="width: 100%" onclick="addFish()">물고기 추가</button></div><label>등록된 물고기 목록</label><div class="list-container">${fishHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 물고기가 없습니다.</div>'}</div>`;
+            }
+            else if (tab === 'shop') {
+                const shop = data.shop || [];
+                let shopHtml = shop.map((s, i) => `<div class="list-item"><div class="list-item-info"><div class="list-item-title">${s.name}</div><div class="list-item-desc">가격: ${s.price}원 | 지속: ${Math.floor(s.duration/60000)}분</div></div><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteShopItem(${i})">삭제</button></div>`).join('');
+                content.innerHTML = `<div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;"><div class="form-group"><label>아이템 이름</label><input type="text" id="shop-name" class="form-control"></div><div class="form-group"><label>가격 (원)</label><input type="number" id="shop-price" class="form-control"></div><div class="form-group"><label>지속 시간 (분)</label><input type="number" id="shop-duration" class="form-control"></div><div class="form-group"><label>효과 타입</label><select id="shop-effect-type" class="form-control"><option value="dice_boost">주사위 확률업</option><option value="double_reward">두배 보상</option><option value="auto_fishing">자동낚시</option></select></div><div class="form-group"><label>효과 값</label><input type="number" id="shop-effect-value" class="form-control" step="0.1"></div><button class="btn btn-primary" style="width: 100%" onclick="addShopItem()">아이템 추가</button></div><label>등록된 상점 아이템</label><div class="list-container">${shopHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 아이템이 없습니다.</div>'}</div>`;
+            }
+            else if (tab === 'event') {
+                const eventFish = data.event?.fish || [];
+                const eventEnabled = data.event?.enabled || false;
+                let eventFishHtml = eventFish.map((f, i) => `<div class="list-item"><div class="list-item-info"><div class="list-item-title">${f.name}</div><div class="list-item-desc">확률: ${f.weight} | 보상: ${f.min}~${f.max}원</div></div><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteEventFish(${i})">삭제</button></div>`).join('');
+                content.innerHTML = `<div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;"><div class="form-group"><label><input type="checkbox" id="event-enabled" ${eventEnabled ? 'checked' : ''} onchange="toggleEvent()"> 이벤트 활성화</label></div><div class="form-group"><label>이벤트 물고기 이름</label><input type="text" id="event-fish-name" class="form-control"></div><div class="form-group"><label>확률 (weight)</label><input type="number" id="event-fish-weight" class="form-control"></div><div class="form-group"><label>최소 보상 (원)</label><input type="number" id="event-fish-min" class="form-control"></div><div class="form-group"><label>최대 보상 (원)</label><input type="number" id="event-fish-max" class="form-control"></div><button class="btn btn-primary" style="width: 100%" onclick="addEventFish()">이벤트 물고기 추가</button></div><label>등록된 이벤트 물고기</label><div class="list-container">${eventFishHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 이벤트 물고기가 없습니다.</div>'}</div>`;
+            }
+            else if (tab === 'users') {
+                const users = data.users || {};
+                const userKeys = Object.keys(users);
+                let usersHtml = userKeys.map(key => { 
+                    const u = users[key];
+                    const displayName = u.nickname || u.uid || key;
+                    const eventFishCount = Object.values(u.eventFish || {}).reduce((a, b) => a + b, 0);
+                    return `<div class="list-item"><div class="list-item-info"><div class="list-item-title">${displayName}</div><div class="list-item-desc">💵 잔액: ${u.gold}원 | 🎣 낚은 수: ${u.totalCaught}마리 | 🐠 이벤트 물고기: ${eventFishCount}마리</div></div><button class="btn btn-edit" style="padding: 6px 12px; font-size: 11px;" onclick="editUser('${key}')">🔧 관리</button></div>`; 
+                }).join('');
+                content.innerHTML = `<div style="margin-bottom:10px;"><strong style="color:#00ff88;">📊 등록된 사용자 목록 (${userKeys.length}명)</strong></div><div class="list-container" style="max-height: 400px;">${usersHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 사용자가 없습니다.</div>'}</div>`;
+            }
+        }
+
+        function addFish() {
+            const name = document.getElementById('fish-name').value;
+            const weight = parseInt(document.getElementById('fish-weight').value);
+            const min = parseInt(document.getElementById('fish-min').value);
+            const max = parseInt(document.getElementById('fish-max').value);
+            if (!name || !weight || isNaN(min) || isNaN(max)) return;
+            window.currentFishingData.fish = window.currentFishingData.fish || [];
+            window.currentFishingData.fish.push({ name, weight, min, max });
+            switchFishingTab('fish');
+        }
+
+        function deleteFish(index) {
+            window.currentFishingData.fish.splice(index, 1);
+            switchFishingTab('fish');
+        }
+
+        function addShopItem() {
+            const name = document.getElementById('shop-name').value;
+            const price = parseInt(document.getElementById('shop-price').value);
+            const duration = parseInt(document.getElementById('shop-duration').value) * 60000;
+            const effectType = document.getElementById('shop-effect-type').value;
+            const effectValue = parseFloat(document.getElementById('shop-effect-value').value);
+            if (!name || !price || !duration || !effectValue) return;
+            window.currentFishingData.shop = window.currentFishingData.shop || [];
+            window.currentFishingData.shop.push({ name, price, duration, effect: { type: effectType, value: effectValue } });
+            switchFishingTab('shop');
+        }
+
+        function deleteShopItem(index) {
+            window.currentFishingData.shop.splice(index, 1);
+            switchFishingTab('shop');
+        }
+
+        function toggleEvent() {
+            const enabled = document.getElementById('event-enabled').checked;
+            window.currentFishingData.event = window.currentFishingData.event || { enabled: false, fish: [] };
+            window.currentFishingData.event.enabled = enabled;
+        }
+
+        function addEventFish() {
+            const name = document.getElementById('event-fish-name').value;
+            const weight = parseInt(document.getElementById('event-fish-weight').value);
+            const min = parseInt(document.getElementById('event-fish-min').value);
+            const max = parseInt(document.getElementById('event-fish-max').value);
+            if (!name || !weight || isNaN(min) || isNaN(max)) return;
+            window.currentFishingData.event = window.currentFishingData.event || { enabled: false, fish: [] };
+            window.currentFishingData.event.fish.push({ name, weight, min, max });
+            switchFishingTab('event');
+        }
+
+        function deleteEventFish(index) {
+            window.currentFishingData.event.fish.splice(index, 1);
+            switchFishingTab('event');
+        }
+
+        // 사용자 정보 수정 및 수동 지급 기능
+        function editUser(userKey) {
+            const user = window.currentFishingData.users[userKey];
+            const displayName = user.nickname || user.uid || userKey;
+            
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:3000;';
+            
+            const content = document.createElement('div');
+            content.style.cssText = 'background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:20px;width:90%;max-width:400px;color:#eee;';
+            
+            content.innerHTML = `
+                <div style="font-size:18px;color:#00d4ff;font-weight:bold;margin-bottom:20px;border-bottom:1px solid #0f3460;padding-bottom:10px;">
+                    👤 ${displayName}님 관리
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;color:#ccc;">현재 잔액</label>
+                    <input type="number" id="user-gold-input" class="form-control" value="${user.gold}" style="margin-bottom:10px;">
+                    <button class="btn btn-primary" style="width:100%;" onclick="updateUserGold('${userKey}', document.getElementById('user-gold-input').value)">잔액 수정</button>
+                </div>
+                <div style="margin-bottom:15px;border-top:1px solid #0f3460;padding-top:15px;">
+                    <label style="display:block;margin-bottom:5px;color:#ccc;">이벤트 물고기 지급</label>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <input type="text" id="fish-name-input" class="form-control" placeholder="물고기 이름" style="flex:1;">
+                        <input type="number" id="fish-count-input" class="form-control" placeholder="수량" value="1" style="width:80px;">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;" onclick="giveEventFish('${userKey}', document.getElementById('fish-name-input').value, document.getElementById('fish-count-input').value)">물고기 지급</button>
+                </div>
+                <button class="btn btn-secondary" style="width:100%;" onclick="this.closest('div').parentElement.remove()">닫기</button>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        }
+        
+        function updateUserGold(userKey, newGold) {
+            const user = window.currentFishingData.users[userKey];
+            user.gold = parseInt(newGold) || 0;
+            alert('잔액이 수정되었습니다.');
+            switchFishingTab('users');
+            document.querySelector('div[style*="position:fixed"]').remove();
+        }
+        
+        function giveEventFish(userKey, fishName, count) {
+            if (!fishName || !count) {
+                alert('물고기 이름과 수량을 입력해주세요.');
+                return;
+            }
+            const user = window.currentFishingData.users[userKey];
+            user.eventFish = user.eventFish || {};
+            user.eventFish[fishName] = (user.eventFish[fishName] || 0) + parseInt(count);
+            alert(`${fishName} ${count}마리를 지급했습니다.`);
+            switchFishingTab('users');
+            document.querySelector('div[style*="position:fixed"]').remove();
+        }
+
+        // 룰렛 탭 전환
+        function switchRouletteTab(tab, event) {
+            const content = document.getElementById('roulette-tab-content');
+            if (!content) return;
+            const buttons = document.querySelectorAll('.tabbtn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            
+            const data = window.currentRouletteData;
+            
+            if (tab === 'roulettes') {
+                const roulettes = data.roulettes || [];
+                let roulettesHtml = roulettes.map((r, i) => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${r.name} (트리거: "${r.triggerMessage}")</div>
+                            <div class="list-item-desc">아이템 ${r.items.length}개 | 확률 합계: ${r.items.reduce((sum, item) => sum + item.probability, 0).toFixed(1)}%</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="editRoulette(${i})">수정</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteRoulette(${i})">삭제</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                content.innerHTML = `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #0a0e27; border-radius: 8px; border: 1px solid #0f3460;">
+                        <div style="color: #00d4ff; font-weight: bold; margin-bottom: 10px;">⚠️ 주의사항</div>
+                        <div style="font-size: 12px; color: #aaa; line-height: 1.6;">
+                            - 최대 4개의 룰렛을 설정할 수 있습니다.<br>
+                            - 각 룰렛의 확률 합계는 반드시 100%여야 합니다.<br>
+                            - 예를들어 10스푼에 룰렛 동작하고싶으면 10스푼 넣으면됌.<br>
+                            - 트리거 메시지가 채팅에 나타나면 자동으로 룰렛이 동작합니다.
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <button class="btn btn-primary" style="width: 100%;" onclick="addNewRoulette()" ${roulettes.length >= 4 ? 'disabled' : ''}>
+                            ${roulettes.length >= 4 ? '⚠️ 최대 4개 룰렛 등록 완료' : '+ 새 룰렛 추가'}
+                        </button>
+                    </div>
+                    <label>등록된 룰렛 목록 (${roulettes.length}/4)</label>
+                    <div class="list-container">${roulettesHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 룰렛이 없습니다.</div>'}</div>
+                `;
+            }
+            else if (tab === 'users') {
+                const users = data.users || {};
+                const userKeys = Object.keys(users).sort((a, b) => {
+                    // 최근 활동 순으로 정렬 (히스토리 마지막 타임스탬프 기준)
+                    const lastA = users[a].history && users[a].history.length > 0 ? new Date(users[a].history[users[a].history.length-1].timestamp).getTime() : 0;
+                    const lastB = users[b].history && users[b].history.length > 0 ? new Date(users[b].history[users[b].history.length-1].timestamp).getTime() : 0;
+                    return lastB - lastA;
+                });
+
+                let usersHtml = userKeys.map((key, index) => {
+                    const u = users[key];
+                    const historyCount = (u.history || []).length;
+                    const keepCount = (u.keepList || []).length;
+                    // 닉네임에서 @ID 부분 제거 (있을 경우)
+                    let cleanNick = u.nickname || key;
+                    cleanNick = cleanNick.split('@')[0].trim();
+                    const displayName = `${cleanNick}(${u.uid || key})`;
+                    return `
+                        <div class="list-item">
+                            <div class="list-item-info">
+                                <div class="list-item-title">${index + 1}. ${displayName}</div>
+                                <div class="list-item-desc">룰렛: ${historyCount}건 | 킵: ${keepCount}건 | 메모: ${(u.customNotes || []).length}건</div>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="viewUserDetails('${key}')">보기</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                content.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <button class="btn btn-primary" style="width: 100%;" onclick="downloadUserData()">💾 추가된 내용만 다운로드</button>
+                    </div>
+                    <label>등록된 유저 목록 (${userKeys.length}명)</label>
+                    <div class="list-container" style="max-height: 400px;">${usersHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 유저가 없습니다.</div>'}</div>
+                `;
+            }
+        }
+
+        // 룰렛 관리 함수들
+        function addNewRoulette() {
+            const data = window.currentRouletteData;
+            if (data.roulettes.length >= 4) {
+                alert('최대 4개의 룰렛만 등록할 수 있습니다.');
+                return;
+            }
+            const newRoulette = {
+                id: Date.now(),
+                name: `룰렛${data.roulettes.length + 1}`,
+                triggerMessage: '',
+                items: [],
+                enabled: true
+            };
+            data.roulettes.push(newRoulette);
+            editRoulette(data.roulettes.length - 1);
+        }
+
+        function editRoulette(index) {
+            const data = window.currentRouletteData;
+            const roulette = data.roulettes[index];
+            const content = document.getElementById('roulette-tab-content');
+            
+            let itemsHtml = (roulette.items || []).map((item, i) => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${item.name}</div>
+                        <div class="list-item-desc">확률: ${item.probability}%</div>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="editRouletteItem(${index}, ${i})">수정</button>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteRouletteItem(${index}, ${i})">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const totalProb = (roulette.items || []).reduce((sum, item) => sum + item.probability, 0);
+            const probColor = Math.abs(totalProb - 100) < 0.01 ? '#00ff88' : '#ff4444';
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="switchRouletteTab('roulettes')">← 목록으로 돌아가기</button>
+                </div>
+                <div class="form-group">
+                    <label>룰렛 이름</label>
+                    <input type="text" id="roulette-name" autofocus class="form-control" value="${roulette.name}" onchange="updateRouletteName(${index})">
+                </div>
+                <div class="form-group">
+                    <label>룰렛 동작 금액  예) 10스푼 </label>
+                    <input type="text" id="roulette-trigger" class="form-control" value="${roulette.triggerMessage}" placeholder="예: 감사합니다." onchange="updateRouletteTrigger(${index})">
+                </div>
+                <div style="margin: 15px 0; padding: 10px; background: #0a0e27; border-radius: 4px; border: 1px solid ${probColor};">
+                    <div style="color: ${probColor}; font-weight: bold;">확률 합계: ${totalProb.toFixed(1)}% / 100%</div>
+                    <div style="font-size: 11px; color: #aaa; margin-top: 5px;">${Math.abs(totalProb - 100) < 0.01 ? '✅ 확률 합계가 100%입니다.' : '⚠️ 확률 합계가 100%가 되도록 조정해주세요.'}</div>
+                </div>
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;">
+                    <div class="form-group">
+                        <label>아이템 이름</label>
+                        <input type="text" id="roulette-item-name" class="form-control" placeholder="예: 리방하기">
+                    </div>
+                    <div class="form-group">
+                        <label>확률 (%)</label>
+                        <input type="number" id="roulette-item-prob" class="form-control" step="0.1" placeholder="0.5">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="addRouletteItem(${index})">아이템 추가</button>
+                </div>
+                <label>등록된 아이템 목록</label>
+                <div class="list-container">${itemsHtml || '<div style="color:#666; text-align:center; padding:10px;">등록된 아이템이 없습니다.</div>'}</div>
+            `;
+        }
+
+        function updateRouletteName(index) {
+            const name = document.getElementById('roulette-name').value;
+            window.currentRouletteData.roulettes[index].name = name;
+        }
+
+        function updateRouletteTrigger(index) {
+            const trigger = document.getElementById('roulette-trigger').value;
+            window.currentRouletteData.roulettes[index].triggerMessage = trigger;
+        }
+
+        function addRouletteItem(rouletteIndex) {
+            const name = document.getElementById('roulette-item-name').value;
+            const prob = parseFloat(document.getElementById('roulette-item-prob').value);
+            if (!name || isNaN(prob) || prob <= 0) {
+                alert('아이템 이름과 확률을 올바르게 입력해주세요.');
+                return;
+            }
+            const roulette = window.currentRouletteData.roulettes[rouletteIndex];
+            roulette.items.push({ name, probability: prob });
+            editRoulette(rouletteIndex);
+        }
+
+        function editRouletteItem(rouletteIndex, itemIndex) {
+            const roulette = window.currentRouletteData.roulettes[rouletteIndex];
+            const item = roulette.items[itemIndex];
+            const newName = prompt('아이템 이름:', item.name);
+            if (newName !== null && newName.trim()) {
+                item.name = newName.trim();
+            }
+            const newProb = prompt('확률 (%):', item.probability);
+            if (newProb !== null) {
+                const prob = parseFloat(newProb);
+                if (!isNaN(prob) && prob > 0) {
+                    item.probability = prob;
+                }
+            }
+            editRoulette(rouletteIndex);
+        }
+
+        function deleteRouletteItem(rouletteIndex, itemIndex) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const roulette = window.currentRouletteData.roulettes[rouletteIndex];
+            roulette.items.splice(itemIndex, 1);
+            editRoulette(rouletteIndex);
+        }
+
+        function deleteRoulette(index) {
+            if (!confirm('정말 이 룰렛을 삭제하시겠습니까?')) return;
+            window.currentRouletteData.roulettes.splice(index, 1);
+            switchRouletteTab('roulettes');
+        }
+
+        // 유저 기록 수정
+        function editUserHistory(userKey, index) {
+            const user = window.currentRouletteData.users[userKey];
+            const history = user.history[index];
+            const newResult = prompt('결과 수정:', history.result);
+            if (newResult !== null && newResult.trim()) {
+                history.result = newResult.trim();
+                viewUserDetails(userKey);
+            }
+        }
+
+        // 유저 기록 삭제
+        function deleteUserHistory(userKey, index) {
+            if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+            const user = window.currentRouletteData.users[userKey];
+            user.history.splice(index, 1);
+            viewUserDetails(userKey);
+        }
+
+        // 유저 삭제
+        function deleteRouletteUser(userKey) {
+            if (!confirm('이 유저의 모든 기록을 삭제하시겠습니까?')) return;
+            delete window.currentRouletteData.users[userKey];
+            switchRouletteTab('users');
+        }
+
+        function viewUserDetails(userKey) {
+            const user = window.currentRouletteData.users[userKey];
+            const content = document.getElementById('roulette-tab-content');
+            
+            let historyHtml = (user.history || []).map((h, i) => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${h.result}</div>
+                        <div class="list-item-desc">${h.rouletteName} | ${new Date(h.timestamp).toLocaleString('ko-KR')}</div>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="editUserHistory('${userKey}', ${i})">수정</button>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteUserHistory('${userKey}', ${i})">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            let notesHtml = (user.customNotes || []).map((note, i) => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-desc" style="white-space: pre-wrap;">${note}</div>
+                    </div>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteUserNote('${userKey}', ${i})">삭제</button>
+                </div>
+            `).join('');
+            
+            // 킵 목록 HTML 생성
+            let keepListHtml = (user.keepList || []).map((item, i) => {
+                const countText = item.count > 1 ? ` X${item.count}` : '';
+                return `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${item.name}${countText}</div>
+                            <div class="list-item-desc">DJ 추가 | ${new Date(item.timestamp).toLocaleString('ko-KR')}</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-edit" style="padding: 4px 8px; font-size: 11px;" onclick="editKeepItem('${userKey}', ${i})">수정</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteKeepItem('${userKey}', ${i})">삭제</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="switchRouletteTab('users')">← 목록으로 돌아가기</button>
+                </div>
+                <div style="margin-bottom: 20px; padding: 15px; background: #0a0e27; border-radius: 8px; border: 1px solid #0f3460;">
+                    <div style="color: #00d4ff; font-weight: bold; font-size: 16px; margin-bottom: 5px;">📋 ${user.nickname ? user.nickname.split('@')[0].trim() : userKey}(${user.uid || userKey}) 님 킵목록</div>
+                    <div style="font-size: 12px; color: #aaa;">DJ가 직접 관리하는 유저의 킵 항목과 기록입니다.</div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin-bottom: 0; color: #00d4ff; font-weight: bold;">킵 목록 (DJ 관리) (${(user.keepList || []).length}건)</label>
+                        <button class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;" onclick="addKeepItem('${userKey}')">킵 항목 추가</button>
+                    </div>
+                    <div class="list-container" style="max-height: 200px;">${keepListHtml || '<div style="color:#666; text-align:center; padding:10px;">킵 항목이 없습니다.</div>'}</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 5px;">* DJ가 직접 관리하는 킵 목록입니다. 룰렛 결과와는 별도로 관리됩니다.</div>
+                </div>
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin-bottom: 0;">룰렛 결과 히스토리 (${(user.history || []).length}건)</label>
+                        <button class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;" onclick="addUserHistory('${userKey}')">기록 직접 추가</button>
+                    </div>
+                    <div class="list-container" style="max-height: 250px;">${historyHtml || '<div style="color:#666; text-align:center; padding:10px;">결과가 없습니다.</div>'}</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 5px;">* 수정 버튼을 눌러 기록 내용을 변경하거나 삭제할 수 있습니다.</div>
+                </div>
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #0f3460;">
+                    <div class="form-group">
+                        <label>추가 메모 작성</label>
+                        <textarea id="user-note-input" class="form-control" rows="2" placeholder="메모를 입력하세요"></textarea>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="addUserNote('${userKey}')">메모 추가</button>
+                </div>
+                <label>추가된 메모 (${(user.customNotes || []).length}건)</label>
+                <div class="list-container">${notesHtml || '<div style="color:#666; text-align:center; padding:10px;">추가된 메모가 없습니다.</div>'}</div>
+            `;
+        }
+
+        async function addUserHistory(userKey) {
+            const result = prompt('추가할 룰렛 결과 내용을 입력하세요:');
+            if (!result || !result.trim()) return;
+            
+            const user = window.currentRouletteData.users[userKey];
+            if (!user.history) user.history = [];
+            
+            user.history.push({
+                timestamp: new Date().toISOString(),
+                rouletteName: 'DJ 직접 추가',
+                result: result.trim(),
+                triggerMessage: 'manual'
+            });
+            
+            // 변경 사항 저장
+            await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+            viewUserDetails(userKey);
+        }
+
+        async function editUserHistory(userKey, index) {
+            const user = window.currentRouletteData.users[userKey];
+            const history = user.history[index];
+            const newResult = prompt('수정할 결과 내용을 입력하세요:', history.result);
+            
+            if (newResult !== null && newResult.trim()) {
+                history.result = newResult.trim();
+                // 변경 사항 저장
+                await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+                viewUserDetails(userKey);
+            }
+        }
+
+        async function deleteUserHistory(userKey, index) {
+            if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+            const user = window.currentRouletteData.users[userKey];
+            user.history.splice(index, 1);
+            // 변경 사항 저장
+            await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+            viewUserDetails(userKey);
+        }
+
+        async function addUserNote(userKey) {
+            const note = document.getElementById('user-note-input').value.trim();
+            if (!note) return;
+            const user = window.currentRouletteData.users[userKey];
+            if (!user.customNotes) user.customNotes = [];
+            user.customNotes.push(note);
+            
+            // 변경 사항 저장
+            await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+            viewUserDetails(userKey);
+        }
+
+        async function deleteUserNote(userKey, noteIndex) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const user = window.currentRouletteData.users[userKey];
+            user.customNotes.splice(noteIndex, 1);
+            
+            // 변경 사항 저장
+            await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+            viewUserDetails(userKey);
+        }
+
+        // 킵 목록 관리 함수들
+        async function addKeepItem(userKey) {
+            const name = prompt('추가할 킵 항목 이름을 입력하세요:');
+            if (!name || !name.trim()) return;
+            
+            const countStr = prompt('개수를 입력하세요 (기본값: 1):', '1');
+            const count = parseInt(countStr) || 1;
+            
+            const user = window.currentRouletteData.users[userKey];
+            if (!user.keepList) user.keepList = [];
+            
+            user.keepList.push({
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                name: name.trim(),
+                count: count,
+                addedBy: 'DJ',
+                timestamp: new Date().toISOString()
+            });
+            
+            // 변경 사항 저장
+            await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+            viewUserDetails(userKey);
+        }
+
+        async function editKeepItem(userKey, index) {
+            const user = window.currentRouletteData.users[userKey];
+            const item = user.keepList[index];
+            
+            const newName = prompt('수정할 킵 항목 이름을 입력하세요:', item.name);
+            if (newName === null) return;
+            
+            const newCountStr = prompt('개수를 입력하세요:', item.count.toString());
+            if (newCountStr === null) return;
+            
+            const newCount = parseInt(newCountStr) || 1;
+            
+            if (newName.trim()) {
+                item.name = newName.trim();
+                item.count = newCount;
+                item.timestamp = new Date().toISOString();
+                
+                // 변경 사항 저장
+                await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+                viewUserDetails(userKey);
+            }
+        }
+
+        async function deleteKeepItem(userKey, index) {
+            if (!confirm('이 킵 항목을 삭제하시겠습니까?')) return;
+            const user = window.currentRouletteData.users[userKey];
+            user.keepList.splice(index, 1);
+            
+            // 변경 사항 저장
+            await window.electronAPI.saveModuleData('rouletteBot', window.currentRouletteData);
+            viewUserDetails(userKey);
+        }
+
+        function downloadUserData() {
+            const data = window.currentRouletteData;
+            const users = data.users || {};
+            const userKeys = Object.keys(users);
+            
+            if (userKeys.length === 0) {
+                alert('다운로드할 유저 데이터가 없습니다.');
+                return;
+            }
+            
+            // 추가된 메모만 포함하는 데이터 생성
+            const exportData = {};
+            userKeys.forEach(key => {
+                const user = users[key];
+                if (user.customNotes && user.customNotes.length > 0) {
+                    exportData[key] = {
+                        nickname: user.nickname,
+                        uid: user.uid,
+                        customNotes: user.customNotes
+                    };
+                }
+            });
+            
+            if (Object.keys(exportData).length === 0) {
+                alert('추가된 메모가 있는 유저가 없습니다.');
+                return;
+            }
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `roulette-user-notes-${new Date().getTime()}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function openRouletteGuide() {
+            document.getElementById('guide-modal-overlay').style.display = 'flex';
+        }
+
+        function closeRouletteGuide() {
+            document.getElementById('guide-modal-overlay').style.display = 'none';
+        }
+
+        function addLog(level, message) {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+            entry.innerHTML = `<span class="log-time">${time}</span><span class="log-level level-${level}">${level.toUpperCase()}</span><span class="log-message">${message}</span>`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function exportBackup() {
+            try {
+                const backup = { timestamp: new Date().toISOString(), version: '1.0', data: {} };
+                const modules = ['shieldBot', 'fundingBot', 'repeatBot', 'customCommandBot', 'fishingBot', 'rouletteBot'];
+                for (const moduleName of modules) {
+                    const data = await window.electronAPI.getModuleData(moduleName);
+                    backup.data[moduleName] = data;
+                }
+                const uids = await window.electronAPI.getShieldUIDs();
+                backup.data.shieldUIDs = uids;
+                const jsonString = JSON.stringify(backup, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `danbi-backup-${new Date().getTime()}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                addLog('info', 'OK - backup exported');
+            } catch (error) {
+                console.error('backup error:', error);
+                addLog('error', 'FAIL - backup export failed');
+                alert('backup failed');
+            }
+        }
+
+        function importBackup() {
+            const input = document.getElementById('backup-file-input');
+            input.click();
+        }
+
+        async function handleBackupImport(event) {
+            try {
+                const file = event.target.files[0];
+                if (!file) return;
+                const text = await file.text();
+                const backup = JSON.parse(text);
+                if (!backup.data) throw new Error('invalid backup file');
+                const modules = ['shieldBot', 'fundingBot', 'repeatBot', 'customCommandBot', 'fishingBot', 'rouletteBot'];
+                for (const moduleName of modules) {
+                    if (backup.data[moduleName] !== undefined) {
+                        await window.electronAPI.saveModuleData(moduleName, backup.data[moduleName]);
+                    }
+                }
+                if (backup.data.shieldUIDs) {
+                    await window.electronAPI.saveShieldUIDs(backup.data.shieldUIDs);
+                }
+                addLog('info', 'OK - backup restored');
+                alert('backup restored successfully. restart app to apply changes.');
+                event.target.value = '';
+            } catch (error) {
+                console.error('import error:', error);
+                addLog('error', 'FAIL - backup restore failed');
+                alert('backup restore failed: ' + error.message);
+                event.target.value = '';
+            }
+        }
+
+        window.electronAPI.onLogUpdated((data) => addLog(data.level, data.message));
+        window.electronAPI.onBotStatusChanged((status) => {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            if (status.active) { indicator.classList.add('active'); text.innerText = '단비 작동 중'; }
+            else { indicator.classList.remove('active'); text.innerText = '연결 대기 중...'; }
+        });
+        window.electronAPI.onChatCountUpdated((count) => document.getElementById('chat-count').innerText = count);
+        window.electronAPI.onModuleToggled(({ moduleName, enabled }) => {
+            moduleSettings.modules[moduleName] = enabled;
+            updateToggles();
+        });
+
+        // 실시간 데이터 업데이트 수신 (룰렛 결과 등)
+        window.electronAPI.onModuleDataUpdated((payload) => {
+            const { moduleName, data } = payload;
+            if (moduleName === 'rouletteBot') {
+                // 1. 현재 데이터 전역 변수에 즉시 반영
+                window.currentRouletteData = data;
+                
+                // 2. 현재 활성화된 탭 확인
+                const content = document.getElementById('roulette-tab-content');
+                if (!content) return;
+
+                // 3. 유저 관리 탭이 활성화되어 있는지 확인
+                const usersTab = document.querySelector('.tabbtn[onclick*="users"]');
+                const isUsersTabActive = usersTab && usersTab.classList.contains('active');
+                
+                if (isUsersTabActive) {
+                    // 상세 정보 보기 중인지 확인
+                    const backBtn = content.querySelector('button[onclick*="switchRouletteTab(\'users\')"]');
+                    if (backBtn) {
+                        // 상세 보기 중이면 현재 보고 있는 유저 정보 갱신
+                        const titleEl = content.querySelector('div[style*="color: #00d4ff"]');
+                        if (titleEl) {
+                            const match = titleEl.textContent.match(/\(([^)]+)\)/);
+                            if (match) {
+                                viewUserDetails(match[1]);
+                                return;
+                            }
+                        }
+                    }
+                    // 목록 보기 중이면 목록 갱신
+                    switchRouletteTab('users');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
